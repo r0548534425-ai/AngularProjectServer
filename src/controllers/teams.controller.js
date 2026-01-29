@@ -70,3 +70,17 @@ export function listTeamMembers(req, res) {
     .all(teamId);
   res.json(rows);
 }
+
+export function removeMember(req, res) {
+  const { teamId, userId } = req.params;
+  const membership = db
+    .prepare('SELECT 1 FROM team_members WHERE team_id = ? AND user_id = ?')
+    .get(teamId, req.user.id);
+  if (!membership) return res.status(403).json({ error: 'Not a team member' });
+  // Ensure team exists
+  const team = db.prepare('SELECT id FROM teams WHERE id = ?').get(teamId);
+  if (!team) return res.status(404).json({ error: 'Team not found' });
+  // Remove the specified user from the team
+  db.prepare('DELETE FROM team_members WHERE team_id = ? AND user_id = ?').run(teamId, userId);
+  return res.status(204).end();
+}
